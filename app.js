@@ -1,6 +1,8 @@
 const express = require('express');
 const methodOverride = require('method-override');
 const ejsMate = require('ejs-mate');
+const session = require('express-session');
+const flash = require('connect-flash');
 const Joi = require('joi');
 const ExpressError = require('./Utils/ExpressError');
 const app = express();
@@ -8,9 +10,6 @@ const port = 3000;
 const path = require('path');
 
 const mongoose = require('mongoose');
-// const Campground = require('./models/campground');
-// const Review = require('./models/review');
-// const { campgroundSchema, reviewSchema } = require('./schemas');
 const campgrounds = require('./routes/campgrounds');
 const reviews = require('./routes/review');
 
@@ -37,31 +36,25 @@ app.engine('ejs', ejsMate);
 
 app.use(express.urlencoded({ extended: true }));
 app.use(methodOverride('_method'));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// const validateCampground = (req, res, next) => {
-//     const { error } = campgroundSchema.validate(req.body);
-//     if (error) {
-//         const msg = error.details.map(el => el.message).join(', ')
-//         throw new ExpressError(msg, 400)
-//     }
-//     else {
-//         next();
-//     }
-// }
-
-// const validateReview = (req, res, next) => {
-//     const { error } = reviewSchema.validate(req.body);
-//     if (error) {
-//         const msg = error.details.map(el => el.message).join(', ')
-//         throw new ExpressError(msg, 400)
-//     }
-//     else {
-//         next();
-//     }
-// }
 
 app.use('/campgrounds', campgrounds);
 app.use('/campgrounds/:id/reviews', reviews);
+
+const sessionConfig = {
+    secret: 'thisshouldbeabettersecret!',
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+        httpOnly: true,
+        expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
+        maxAge: 1000 * 60 * 60 * 24 * 7
+    }
+}
+
+app.use(session(sessionConfig));
+app.use(flash());
 
 app.get('/', (req, res) => {
     //res.send('Hello YepCamp!');
