@@ -38,10 +38,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use(methodOverride('_method'));
 app.use(express.static(path.join(__dirname, 'public')));
 
-
-app.use('/campgrounds', campgrounds);
-app.use('/campgrounds/:id/reviews', reviews);
-
 const sessionConfig = {
     secret: 'thisshouldbeabettersecret!',
     resave: false,
@@ -55,6 +51,15 @@ const sessionConfig = {
 
 app.use(session(sessionConfig));
 app.use(flash());
+
+app.use((req, res, next) => {
+    res.locals.success = req.flash('success');
+    res.locals.error = req.flash('error');
+    next();
+})
+
+app.use('/campgrounds', campgrounds);
+app.use('/campgrounds/:id/reviews', reviews);
 
 app.get('/', (req, res) => {
     //res.send('Hello YepCamp!');
