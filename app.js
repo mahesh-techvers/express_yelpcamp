@@ -1,3 +1,9 @@
+if (process.env.NODE_ENV !== 'production') {
+    console.log("We are in development mode");
+    require('dotenv').config();
+}
+
+
 const express = require('express');
 const methodOverride = require('method-override');
 const ejsMate = require('ejs-mate');
