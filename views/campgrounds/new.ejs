@@ -15,7 +15,13 @@
           <div class="valid-feedback">Location is validated</div>
         </div>
         <br />
-        <input type="file" name="image" id="" multiple>
+        <div class="form-file custom-file">
+          <label for="image" class="custom-file-label">
+            <span class="form-file-text">Choose image(s)</span>
+          </label>
+          <input class="form-control" type="file" id="image" name="image" multiple>
+        </div>
+        <!-- <input type="file" name="image" id="" multiple> -->
         <!-- <div class="mb-3">
           <label class="form-label" for="image">Image URL:</label>
           <input class="form-control" type="text" id="location" name="campground[image]" required />
