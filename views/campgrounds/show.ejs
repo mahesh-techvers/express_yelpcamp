@@ -58,7 +58,7 @@
           </li>
           <li class="list-group-item">$<%= campground?.price %>/Night</li>
         </ul>
-        <% if (campground?.author && campground.author._id.equals(currentUser._id)) { %>
+        <% if (currentUser && campground?.author && campground.author._id.equals(currentUser._id)) { %>
           <div class="card-body">
             <a href="/campgrounds/<%= campground._id %>/edit" class="card-link btn btn-info">Edit Campground</a>
             <form class="d-inline" action="/campgrounds/<%= campground._id %>?_method=DELETE" method="POST"
@@ -126,7 +126,7 @@
                   <p>
                     <%= review.body %>
                   </p>
-                  <% if (campground && review.author.equals(currentUser._id)) { %>
+                  <% if (currentUser && campground && review.author.equals(currentUser._id)) { %>
                     <form action="/campgrounds/<%= campground._id %>/reviews/<%= review._id %>?_method=DELETE"
                       method="POST">
                       <button type="submit" class="btn btn-danger">Delete Review</button>
