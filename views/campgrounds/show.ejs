@@ -9,8 +9,9 @@
         <div class="carousel-indicators">
           <% campground.images.forEach((img, i)=> { %>
             <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="<%= i %>"
-              class="<%= i === 0 ? 'active' : '' %>" <%=i===0 ? 'aria-current="true"' : '' %> aria-label="Slide <%= i +
-                1 %>"></button>
+              class="<%= i === 0 ? 'active' : '' %>" <%=i===0 ? 'aria-current="true"' : '' %> aria-label="Slide
+              <%= i + 1 %>">
+            </button>
             <% }) %>
         </div>
         <div class="carousel-inner">
@@ -74,6 +75,7 @@
 
     </div>
     <div class="col-6">
+      <div id="map" style="width: 100%; height: 300px;"></div>
       <% if(currentUser){ %>
         <h2 class="mt-3">Add a Review</h2>
         <form action="/campgrounds/<%= campground._id %>/reviews" method="POST" novalidate class="needs-validation">
@@ -138,3 +140,12 @@
           </div>
     </div>
   </div>
+
+  <%-"<script>"%>
+    const maptilerApiKey = '<%- process.env.MAPTILER_API_KEY %>';
+      const campground = <%- JSON.stringify(campground) %>;
+        console.log("Campground====>", campground)
+        console.log("Maptiler API Key====>", maptilerApiKey)
+        <%-"</script>"%>
+
+          <script src="/javascript/showPageMap.js"></script>
