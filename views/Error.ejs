@@ -3,10 +3,13 @@
         <h4 class="alert-heading">
             <%= message %>
         </h4>
-        <p>
-            <%= err.message %>
-        </p>
-        <hr>
-        <p class="mb-0">Status Code: <%= statusCode %>
-        </p>
+        <% if (process.env.NODE_ENV !=='production' ) { %>
+            <p>
+                <%= err.message %>
+            </p>
+            <% } %>
+
+                <hr>
+                <p class="mb-0">Status Code: <%= statusCode %>
+                </p>
     </div>
