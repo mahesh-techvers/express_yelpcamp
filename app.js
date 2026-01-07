@@ -29,6 +29,7 @@ const reviewRoutes = require('./routes/review');
 const sanitizeV5 = require('./Utils/mongoSanitizeV5.js');
 //const db_url = process.env.DB_URL;
 const db_url = process.env.DB_URL || 'mongodb://localhost:27017/yelp-camp-maptiler'
+console.log("DB_URL used:", db_url.replace(/:([^:@]+)@/, ':****@'));
 if (process.env.NODE_ENV === 'production' && !process.env.DB_URL) {
     console.warn("WARNING: DB_URL environment variable is not set. Falling back to localhost connection string which will likely fail in production.");
 }
