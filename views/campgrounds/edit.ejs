@@ -4,7 +4,8 @@
   </div>
   <div class="row">
     <div class="col-6 offset-3">
-      <form action="/campgrounds/<%= campground._id %>?_method=PUT" method="POST" novalidate class="needs-validation">
+      <form action="/campgrounds/<%= campground._id %>?_method=PUT" method="POST" novalidate class="needs-validation"
+        enctype="multipart/form-data">
         <div class="mb-3">
           <label for="title" class="form-label">Title:</label>
           <input class="form-control" type="text" id="title" name="campground[title]" value="<%= campground.title %>"
@@ -18,13 +19,8 @@
             value="<%= campground.location %>" required />
           <div class="valid-feedback">This field is validated</div>
         </div>
-        <br />
-        <div class="mb-3">
-          <label class="form-label" for="image">Image URL:</label>
-          <input class="form-control" type="text" id="location" name="campground[image]" value="<%= campground.image %>"
-            required />
-          <div class="valid-feedback">This field is validated</div>
-        </div>
+
+
         <br />
         <div class="mb-3">
           <label class="form-label" for="price">Campground Price:</label>
@@ -46,7 +42,24 @@
       </textarea>
           <div class="valid-feedback">This field is validated</div>
         </div>
-        <div class="text-center">
+        <br />
+        <div class="form-file custom-file">
+          <label for="image" class="custom-file-label">
+            <span class="form-file-text">Choose image(s)</span>
+          </label>
+          <input class="form-control" type="file" id="image" name="image" multiple>
+        </div>
+        <div class="mb-3">
+          <% campground.images.forEach((img, i)=>{ %>
+            <img src="<%= img.thumbnail %>" class="img-thumbnail" alt="">
+            <div class="form-check-inline">
+              <input type="checkbox" id="image-<%=i%>" name="deleteImages[]" value="<%= img.filename%>" />
+              <label for="image-<%=i%>">Delete</label>
+            </div>
+            <% }) %>
+        </div>
+
+        <div class="text-center mb-3">
           <button class="btn-success" type="submit">Update Campground</button>
           <a href="/campgrounds/<%= campground._id %>">Cancel</a>
         </div>

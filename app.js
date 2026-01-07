@@ -1,19 +1,39 @@
+if (process.env.NODE_ENV !== 'production') {
+    console.log("We are in development mode");
+    require('dotenv').config();
+}
+
 const express = require('express');
 const methodOverride = require('method-override');
 const ejsMate = require('ejs-mate');
+const session = require('express-session');
+const flash = require('connect-flash');
 const Joi = require('joi');
-const catchAsync = require('./Utils/catchAsync');
+const MongoDBStore = require('connect-mongo')(session);
 const ExpressError = require('./Utils/ExpressError');
 const app = express();
-const port = 3000;
+app.set('query parser', 'extended');
+const port = process.env.PORT || 3000;
 const path = require('path');
 
 const mongoose = require('mongoose');
-const Campground = require('./models/campground');
-const Review = require('./models/review');
-const { campgroundSchema, reviewSchema } = require('./schemas');
+const passport = require('passport');
+const LocalStrategy = require('passport-local');
+const User = require('./models/user');
+const mongoSanitize = require('express-mongo-sanitize');
+const helmet = require('helmet');
 
-mongoose.connect('mongodb://localhost:27017/yelp-camp')
+const userRoutes = require('./routes/users');
+const campgroundRoutes = require('./routes/campgrounds');
+const reviewRoutes = require('./routes/review');
+const sanitizeV5 = require('./Utils/mongoSanitizeV5.js');
+//const db_url = process.env.DB_URL;
+const db_url = 'mongodb://localhost:27017/yelp-camp-maptiler'
+
+
+//mongodb+srv://maheshr_db_user:<db_password>@cluster0.m238eyb.mongodb.net/?appName=Cluster0
+
+mongoose.connect(db_url)
     .then(() => {
         console.log("MongoDB connected");
     })
@@ -36,92 +56,111 @@ app.engine('ejs', ejsMate);
 
 app.use(express.urlencoded({ extended: true }));
 app.use(methodOverride('_method'));
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(sanitizeV5({ replaceWith: '_' }));
+// app.use(mongoSanitize());
+app.use(helmet({ contentSecurityPolicy: false }));
 
-const validateCampground = (req, res, next) => {
-    const { error } = campgroundSchema.validate(req.body);
-    if (error) {
-        const msg = error.details.map(el => el.message).join(', ')
-        throw new ExpressError(msg, 400)
-    }
-    else {
-        next();
+const secret = process.env.SECRET;
+
+const store = new MongoDBStore({
+    url: db_url,
+    secret,
+    touchAfter: 24 * 60 * 60
+})
+
+store.on("error", function (e) {
+    console.log("SESSION STORE ERROR", e)
+})
+
+const sessionConfig = {
+    store,
+    secret,
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+        httpOnly: true,
+        expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
+        maxAge: 1000 * 60 * 60 * 24 * 7
     }
 }
 
-const validateReview = (req, res, next) => {
-    const { error } = reviewSchema.validate(req.body);
-    if (error) {
-        const msg = error.details.map(el => el.message).join(', ')
-        throw new ExpressError(msg, 400)
-    }
-    else {
-        next();
-    }
-}
+app.use(session(sessionConfig));
+app.use(flash());
+
+const scriptSrcUrls = [
+    "https://stackpath.bootstrapcdn.com/",
+    // "https://api.tiles.mapbox.com/",
+    // "https://api.mapbox.com/",
+    "https://kit.fontawesome.com/",
+    "https://cdnjs.cloudflare.com/",
+    "https://cdn.jsdelivr.net",
+    "https://cdn.maptiler.com/", // add this
+];
+const styleSrcUrls = [
+    "https://kit-free.fontawesome.com/",
+    "https://stackpath.bootstrapcdn.com/",
+    // "https://api.mapbox.com/",
+    // "https://api.tiles.mapbox.com/",
+    "https://fonts.googleapis.com/",
+    "https://use.fontawesome.com/",
+    "https://cdn.jsdelivr.net",
+    "https://cdn.maptiler.com/", // add this
+];
+const connectSrcUrls = [
+    // "https://api.mapbox.com/",
+    // "https://a.tiles.mapbox.com/",
+    // "https://b.tiles.mapbox.com/",
+    // "https://events.mapbox.com/",
+    "https://api.maptiler.com/", // add this
+];
+const fontSrcUrls = [];
+app.use(
+    helmet.contentSecurityPolicy({
+        directives: {
+            defaultSrc: [],
+            connectSrc: ["'self'", ...connectSrcUrls],
+            scriptSrc: ["'unsafe-inline'", "'self'", ...scriptSrcUrls],
+            styleSrc: ["'self'", "'unsafe-inline'", ...styleSrcUrls],
+            workerSrc: ["'self'", "blob:"],
+            objectSrc: [],
+            imgSrc: [
+                "blob:",
+                "data:",
+                "https://res.cloudinary.com",
+                "https://images.unsplash.com",
+                "https://api.maptiler.com",
+                "https://cdn.maptiler.com",
+            ],
+            fontSrc: ["'self'", ...fontSrcUrls],
+        },
+    })
+);
+
+app.use(passport.initialize());
+app.use(passport.session())
+passport.use(new LocalStrategy(User.authenticate()));
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
+
+app.use((req, res, next) => {
+    console.log("User Query====>", req.query)
+    res.locals.currentUser = req.user;
+    res.locals.success = req.flash('success');
+    res.locals.error = req.flash('error');
+    next();
+})
+
+
+app.use('/', userRoutes);
+app.use('/campgrounds', campgroundRoutes);
+app.use('/campgrounds/:id/reviews', reviewRoutes);
 
 app.get('/', (req, res) => {
     //res.send('Hello YepCamp!');
     res.render('Home')
 })
 
-app.get('/campgrounds', catchAsync(async (req, res) => {
-    const campgrounds = await Campground.find({});
-    res.render('campgrounds/index', { campgrounds });
-}));
-
-app.get('/campgrounds/new', (req, res) => {
-    res.render('campgrounds/new');
-});
-
-app.post('/campgrounds', validateCampground, catchAsync(async (req, res, next) => {
-    //if (!req.body.campground) throw new ExpressError("Invalid Campground Data or Data Incomplete!", 400);
-
-    const campground = new Campground(req.body.campground);
-    await campground.save();
-    res.redirect(`/campgrounds/${campground._id}`);
-
-}));
-
-app.get('/campgrounds/:id', catchAsync(async (req, res) => {
-    const campground = await Campground.findById(req.params.id).populate('reviews');
-    console.log(campground);
-    res.render('campgrounds/show', { campground });
-}))
-
-app.get('/campgrounds/:id/edit', catchAsync(async (req, res) => {
-    const campground = await Campground.findById(req.params.id);
-    res.render('campgrounds/edit', { campground });
-}));
-
-app.put('/campgrounds/:id', validateCampground, catchAsync(async (req, res) => {
-    const { id } = req.params;
-    const campground = await Campground.findByIdAndUpdate(id, { ...req.body.campground });
-    res.redirect(`/campgrounds/${campground._id}`);
-    //res.send("Update Route");
-}));
-
-app.delete('/campgrounds/:id', catchAsync(async (req, res) => {
-    const { id } = req.params;
-    await Campground.findByIdAndDelete(id);
-    res.redirect('/campgrounds');
-}));
-
-app.post('/campgrounds/:id/reviews', validateReview, catchAsync(async (req, res) => {
-    const campground = await Campground.findById(req.params.id);
-    const review = new Review(req.body.review);
-    campground.reviews.push(review);
-    await review.save();
-    await campground.save();
-    res.redirect(`/campgrounds/${campground._id}`)
-}))
-
-app.delete('/campgrounds/:id/reviews/:reviewId', catchAsync(async (req, res) => {
-    // res.send("Delete Route")
-    const { id, reviewId } = req.params;
-    await Campground.findByIdAndUpdate(id, { $pull: { reviews: reviewId } });
-    await Review.findByIdAndDelete(reviewId);
-    res.redirect(`/campgrounds/${id}`);
-}));
 
 app.all(/(.*)/, (req, res, next) => {
     //res.send("Page Not Found")
@@ -138,8 +177,6 @@ app.use((err, req, res, next) => {
     }
     res.status(statusCode).render('Error', { statusCode, message, err })
 })
-
-
 
 
 // app.get('/makecampground', async(req,res) =>{
