@@ -13,7 +13,7 @@ const MongoDBStore = require('connect-mongo')(session);
 const ExpressError = require('./Utils/ExpressError');
 const app = express();
 app.set('query parser', 'extended');
-const port = 3000;
+const port = process.env.PORT || 3000;
 const path = require('path');
 
 const mongoose = require('mongoose');
@@ -61,9 +61,11 @@ app.use(sanitizeV5({ replaceWith: '_' }));
 // app.use(mongoSanitize());
 app.use(helmet({ contentSecurityPolicy: false }));
 
+const secret = process.env.SECRET;
+
 const store = new MongoDBStore({
     url: db_url,
-    secret: 'thisshouldbeabettersecret!',
+    secret,
     touchAfter: 24 * 60 * 60
 })
 
@@ -73,7 +75,7 @@ store.on("error", function (e) {
 
 const sessionConfig = {
     store,
-    secret: 'thisshouldbeabettersecret!',
+    secret,
     resave: false,
     saveUninitialized: true,
     cookie: {
