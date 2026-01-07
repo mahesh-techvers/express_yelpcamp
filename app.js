@@ -28,10 +28,8 @@ const campgroundRoutes = require('./routes/campgrounds');
 const reviewRoutes = require('./routes/review');
 const sanitizeV5 = require('./Utils/mongoSanitizeV5.js');
 //const db_url = process.env.DB_URL;
-const db_url = 'mongodb://localhost:27017/yelp-camp-maptiler'
+const db_url = process.env.DB_URL || 'mongodb://localhost:27017/yelp-camp-maptiler'
 
-
-//mongodb+srv://maheshr_db_user:<db_password>@cluster0.m238eyb.mongodb.net/?appName=Cluster0
 
 mongoose.connect(db_url)
     .then(() => {
