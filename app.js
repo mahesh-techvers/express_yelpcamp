@@ -9,7 +9,7 @@ const ejsMate = require('ejs-mate');
 const session = require('express-session');
 const flash = require('connect-flash');
 const Joi = require('joi');
-const MongoDBStore = require('connect-mongo')(session);
+const MongoStore = require('connect-mongo').MongoStore;
 const ExpressError = require('./Utils/ExpressError');
 const app = express();
 app.set('query parser', 'extended');
@@ -65,8 +65,8 @@ app.use(helmet({ contentSecurityPolicy: false }));
 
 const secret = process.env.SECRET;
 
-const store = new MongoDBStore({
-    url: db_url,
+const store = MongoStore.create({
+    mongoUrl: db_url,
     secret,
     touchAfter: 24 * 60 * 60
 })
