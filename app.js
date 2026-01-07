@@ -9,6 +9,7 @@ const ejsMate = require('ejs-mate');
 const session = require('express-session');
 const flash = require('connect-flash');
 const Joi = require('joi');
+const MongoDBStore = require('connect-mongo')(session);
 const ExpressError = require('./Utils/ExpressError');
 const app = express();
 app.set('query parser', 'extended');
@@ -26,8 +27,13 @@ const userRoutes = require('./routes/users');
 const campgroundRoutes = require('./routes/campgrounds');
 const reviewRoutes = require('./routes/review');
 const sanitizeV5 = require('./Utils/mongoSanitizeV5.js');
+//const db_url = process.env.DB_URL;
+const db_url = 'mongodb://localhost:27017/yelp-camp-maptiler'
 
-mongoose.connect('mongodb://localhost:27017/yelp-camp-maptiler')
+
+//mongodb+srv://maheshr_db_user:<db_password>@cluster0.m238eyb.mongodb.net/?appName=Cluster0
+
+mongoose.connect(db_url)
     .then(() => {
         console.log("MongoDB connected");
     })
@@ -55,7 +61,18 @@ app.use(sanitizeV5({ replaceWith: '_' }));
 // app.use(mongoSanitize());
 app.use(helmet({ contentSecurityPolicy: false }));
 
+const store = new MongoDBStore({
+    url: db_url,
+    secret: 'thisshouldbeabettersecret!',
+    touchAfter: 24 * 60 * 60
+})
+
+store.on("error", function (e) {
+    console.log("SESSION STORE ERROR", e)
+})
+
 const sessionConfig = {
+    store,
     secret: 'thisshouldbeabettersecret!',
     resave: false,
     saveUninitialized: true,
