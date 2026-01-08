@@ -9,7 +9,8 @@ const ejsMate = require('ejs-mate');
 const session = require('express-session');
 const flash = require('connect-flash');
 const Joi = require('joi');
-const MongoDBStore = require('connect-mongo')(session);
+//const MongoDBStore = require('connect-mongo')(session);
+const MongoStore = require('connect-mongo').default;
 const ExpressError = require('./Utils/ExpressError');
 const app = express();
 app.set('query parser', 'extended');
@@ -63,11 +64,18 @@ app.use(helmet({ contentSecurityPolicy: false }));
 
 const secret = process.env.SECRET;
 
-const store = new MongoDBStore({
-    url: db_url,
-    secret,
-    touchAfter: 24 * 60 * 60
-})
+// const store = new MongoDBStore({
+//     url: db_url,
+//     secret,
+//     touchAfter: 24 * 60 * 60
+// })
+const store = MongoStore.create({
+    mongoUrl: db_url,
+    touchAfter: 24 * 60 * 60,
+    crypto: {
+        secret: secret
+    }
+});
 
 store.on("error", function (e) {
     console.log("SESSION STORE ERROR", e)
@@ -169,12 +177,17 @@ app.all(/(.*)/, (req, res, next) => {
 
 app.use((err, req, res, next) => {
     const { statusCode = 500, message = "Something went wrong" } = err;
+    console.log("ERROR HANDLER:", err);
     // if (err.name = 'ValidationError') {
     //     return res.render('Error', { statusCode, message })
     // }
     if (!err.message) {
         err.message = "Something went wrong"
     }
+    // Fix for ReferenceError: currentUser is not defined
+    res.locals.currentUser = res.locals.currentUser || null;
+    res.locals.success = res.locals.success || [];
+    res.locals.error = res.locals.error || [];
     res.status(statusCode).render('Error', { statusCode, message, err })
 })
 
